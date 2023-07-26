@@ -1,3 +1,10 @@
+
+body{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .dropArea {
     width: 500px;
     height: 100px;
@@ -5,38 +12,66 @@
     border-radius: 20px;
     padding: 20px;
     text-align: center;
-    cursor: pointer;
-
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 30px;
+    font-weight: bolder;
+    font-family: sans-serif;
+    margin: 50px;
+    color: green;
+ 
     &--border-Black{
      border: 5px dashed black;
     }
-  }
 
-  #fileList {
-    margin-top: 20px;
+    input{
+      display: none;
+    }
   }
 
   .fileItem {
-    width: 300px;
-    margin-bottom: 10px;
+    width: 400px;
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+
+    &__description{
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      span{
+        width: 150px;
+        height: 20px;
+        overflow: hidden;
+      }
+    }
+    &__percent{
+      text-align: end;
+    }
   }
 
   .progressBar {
     width: 400px;
-    height: 30px;
+    height: 10px;
+    border-radius: 8px;
     background-color: #f0f0f0;
     margin-top: 5px;
   }
 
   .progressBarFill {
     height: 100%; 
+    border-radius: 8px;
   }
 
   .success {
-    background-color: red;
+    background-color: green;
   }
   
   .error {
-    background-color: #f8d7d7;
+    background-color: red;
   } 
   
