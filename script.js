@@ -1,15 +1,14 @@
 const endpoint = "http://localhost:8080";
-let uploadQueue = [];
 const progressBarFillArr = [];
+const AllFiles = [];
 let activeUploads = 0;
-let files = [];
 let uploadCount = 0;
 let inputChangeCount = false;
-let sliceCount = 0;
 
 const dropArea = document.querySelector(".dropArea");
 const fileInput = document.querySelector(".fileInput");
 const fileList = document.querySelector(".fileList");
+const uploadFilesCount = document.querySelector('.files-count')
 
 function handleDragEnter(event) {
   event.preventDefault();
@@ -21,7 +20,6 @@ function handleDragEnter(event) {
 function createFileItem(file) {
   const fileItem = document.createElement("div");
   fileItem.className = "fileItem";
-  fileItem.id = file.id;
 
   const description = document.createElement("div");
   description.className = "fileItem__description";
@@ -37,8 +35,7 @@ function createFileItem(file) {
 
   const progressBarFill = document.createElement("div");
   progressBarFill.className = "progressBarFill";
-  progressBarFill.id = file.id;
-  progressBarFillArr.push(progressBarFill);
+  progressBarFillArr.push({progressBarFill,percent,id:file.id});
 
   description.append(name, percent);
   progressBar.appendChild(progressBarFill);
@@ -48,14 +45,14 @@ function createFileItem(file) {
 
 function handleFileSelect(event) {
   event.preventDefault();
-  event.stopPropagation();
 
-  files = event.target.files || event.dataTransfer.files;
+  const files = event.target.files || event.dataTransfer.files;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     file.id = Math.random() + Date.now();
-    uploadQueue.push(file);
+    AllFiles.push(file);
+    uploadFilesCount.textContent = `upload files count : ${uploadCount}/${AllFiles.length}`
     createFileItem(file);
   }
 
@@ -63,19 +60,19 @@ function handleFileSelect(event) {
 
   if (!inputChangeCount) {
     inputChangeCount = true;
-    parallelUpload(uploadQueue);
+    parallelUpload();
   }
 }
 
-function parallelUpload(arr) {
-  let parallelArrSlice = arr.slice(sliceCount, sliceCount + 3);
+function parallelUpload() {
+  let uploadQueue = AllFiles.slice(uploadCount, uploadCount + 3);
 
-  uploadFile(parallelArrSlice, uploadQueue.slice(parallelArrSlice.length));
+  uploadFile(uploadQueue);
 }
 
-function uploadFile(arr, parallelArrSlice) {
-  for (let i = 0; i < arr.length; i++) {
-    let file = arr[i];
+function uploadFile(uploadQueue) {
+  for (let i = 0; i < uploadQueue.length; i++) {
+    let file = uploadQueue[i];
     const formData = new FormData();
     formData.append("file", file);
 
@@ -83,12 +80,12 @@ function uploadFile(arr, parallelArrSlice) {
 
     xhr.open("POST", endpoint, true);
 
-    const progressUpload = progressBarFillArr.find((el) => el.id == file.id);
+    const {progressBarFill,percent} = progressBarFillArr.find((el) => el.id == file.id);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const progress = ((event.loaded / event.total) * 100).toFixed(2);
-        updateProgressBar(progress, progressUpload);
+        updateProgressBar(progress, progressBarFill,percent);
       }
     };
 
@@ -96,15 +93,15 @@ function uploadFile(arr, parallelArrSlice) {
       if (xhr.status === 200) {
         activeUploads++;
         uploadCount++;
-        sliceCount++;
+        uploadFilesCount.textContent = `upload files count : ${uploadCount}/${AllFiles.length}`
       }
 
-      if (activeUploads >= 3 || activeUploads === arr.length) {
+      if (activeUploads >= 3 || activeUploads === uploadQueue.length) {
         activeUploads = 0;
-        parallelUpload(uploadQueue);
+        parallelUpload();
       }
 
-      if (uploadCount === uploadQueue.length) {
+      if (uploadCount === AllFiles.length) {
         activeUploads = 0;
         inputChangeCount = false;
       }
@@ -118,14 +115,14 @@ function uploadFile(arr, parallelArrSlice) {
   }
 }
 
-function updateProgressBar(progress, progressUpload) {
-  progressUpload.style.width = `${progress}%`;
-  
+function updateProgressBar(progress, progressBarFill,percent) {
+  progressBarFill.style.width = `${progress}%`;
+  percent.textContent = `${progress}%`;
   
   if (progress < 100) {
-    progressUpload.style.backgroundColor = "#2196f3";
+    progressBarFill.style.backgroundColor = "#2196f3";
   }else{
-    progressUpload.style.backgroundColor = "green";
+    progressBarFill.style.backgroundColor = "green";
   }
 }
 
