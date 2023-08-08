@@ -3,7 +3,7 @@ const progressBarFillArr = [];
 const allFiles = [];
 const parallelUploadCount = 3;
 let activeUploads = 0;
-let uploadCount = 0;
+let uploadedCount = 0;
 let isLoaded = false;
 
 const dropArea = document.querySelector(".dropArea");
@@ -12,7 +12,7 @@ const fileList = document.querySelector(".fileList");
 const uploadFilesCount = document.querySelector('.files-count')
 
 function handleUploadFilesCount(){
-  uploadFilesCount.textContent = `upload files count : ${uploadCount}/${allFiles.length}`
+  uploadFilesCount.textContent = `upload files count : ${uploadedCount}/${allFiles.length}`
 }
 
 function handleProgress(event,progressBarFill,percent){
@@ -25,7 +25,7 @@ function handleProgress(event,progressBarFill,percent){
 function handleUpload(xhr,end){
   if (xhr.status === 200) {
     activeUploads++;
-    uploadCount++;
+    uploadedCount++;
     handleUploadFilesCount()
   }
 
@@ -34,7 +34,7 @@ function handleUpload(xhr,end){
     parallelUpload();
   }
 
-  if (uploadCount === allFiles.length) {
+  if (uploadedCount === allFiles.length) {
     activeUploads = 0;
     isLoaded = false;
   }
@@ -73,6 +73,22 @@ function createFileItem(file) {
   fileList.appendChild(fileItem);
 }
 
+function parallelUpload() {
+  let end = allFiles.length - uploadedCount < parallelUploadCount ? allFiles.length - uploadedCount : parallelUploadCount 
+  uploadFile(uploadedCount,uploadedCount + end);
+}
+
+function updateProgressBar(progress, progressBarFill,percent) {
+  progressBarFill.style.width = `${progress}%`;
+  percent.textContent = `${progress}%`;
+  
+  if (progress < 100) {
+    progressBarFill.style.backgroundColor = "#2196f3";
+  }else{
+    progressBarFill.style.backgroundColor = "green";
+  }
+}
+
 function handleFileSelect(event) {
   event.preventDefault();
 
@@ -90,22 +106,6 @@ function handleFileSelect(event) {
   if (!isLoaded) {
     isLoaded = true;
     parallelUpload();
-  }
-}
-
-function parallelUpload() {
-  let end = allFiles.length - uploadCount < parallelUploadCount ? allFiles.length - uploadCount : parallelUploadCount 
-  uploadFile(uploadCount,uploadCount + end);
-}
-
-function updateProgressBar(progress, progressBarFill,percent) {
-  progressBarFill.style.width = `${progress}%`;
-  percent.textContent = `${progress}%`;
-  
-  if (progress < 100) {
-    progressBarFill.style.backgroundColor = "#2196f3";
-  }else{
-    progressBarFill.style.backgroundColor = "green";
   }
 }
 
