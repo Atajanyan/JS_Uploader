@@ -1,14 +1,44 @@
 const endpoint = "http://localhost:8080";
 const progressBarFillArr = [];
-const AllFiles = [];
+const allFiles = [];
+const parallelUploadCount = 3;
 let activeUploads = 0;
 let uploadCount = 0;
-let inputChangeCount = false;
+let isLoaded = false;
 
 const dropArea = document.querySelector(".dropArea");
 const fileInput = document.querySelector(".fileInput");
 const fileList = document.querySelector(".fileList");
 const uploadFilesCount = document.querySelector('.files-count')
+
+function handleUploadFilesCount(){
+  uploadFilesCount.textContent = `upload files count : ${uploadCount}/${allFiles.length}`
+}
+
+function handleProgress(event,progressBarFill,percent){
+  if (event.lengthComputable) {
+    const progress = ((event.loaded / event.total) * 100).toFixed(2);
+    updateProgressBar(progress, progressBarFill,percent);
+  }
+}
+
+function handleUpload(xhr,end){
+  if (xhr.status === 200) {
+    activeUploads++;
+    uploadCount++;
+    handleUploadFilesCount()
+  }
+
+  if (activeUploads === parallelUploadCount || activeUploads === end) {
+    activeUploads = 0;
+    parallelUpload();
+  }
+
+  if (uploadCount === allFiles.length) {
+    activeUploads = 0;
+    isLoaded = false;
+  }
+}
 
 function handleDragEnter(event) {
   event.preventDefault();
@@ -35,7 +65,7 @@ function createFileItem(file) {
 
   const progressBarFill = document.createElement("div");
   progressBarFill.className = "progressBarFill";
-  progressBarFillArr.push({progressBarFill,percent,id:file.id});
+  progressBarFillArr.push({progressBarFill,percent});
 
   description.append(name, percent);
   progressBar.appendChild(progressBarFill);
@@ -50,69 +80,22 @@ function handleFileSelect(event) {
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    file.id = Math.random() + Date.now();
-    AllFiles.push(file);
-    uploadFilesCount.textContent = `upload files count : ${uploadCount}/${AllFiles.length}`
+    allFiles.push(file);
+    handleUploadFilesCount()
     createFileItem(file);
   }
 
   event.target.value = ''
 
-  if (!inputChangeCount) {
-    inputChangeCount = true;
+  if (!isLoaded) {
+    isLoaded = true;
     parallelUpload();
   }
 }
 
 function parallelUpload() {
-  let uploadQueue = AllFiles.slice(uploadCount, uploadCount + 3);
-
-  uploadFile(uploadQueue);
-}
-
-function uploadFile(uploadQueue) {
-  for (let i = 0; i < uploadQueue.length; i++) {
-    let file = uploadQueue[i];
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.open("POST", endpoint, true);
-
-    const {progressBarFill,percent} = progressBarFillArr.find((el) => el.id == file.id);
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const progress = ((event.loaded / event.total) * 100).toFixed(2);
-        updateProgressBar(progress, progressBarFill,percent);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        activeUploads++;
-        uploadCount++;
-        uploadFilesCount.textContent = `upload files count : ${uploadCount}/${AllFiles.length}`
-      }
-
-      if (activeUploads >= 3 || activeUploads === uploadQueue.length) {
-        activeUploads = 0;
-        parallelUpload();
-      }
-
-      if (uploadCount === AllFiles.length) {
-        activeUploads = 0;
-        inputChangeCount = false;
-      }
-    };
-
-    xhr.onerror = () => {
-      new Error("Error");
-    };
-
-    xhr.send(formData);
-  }
+  let end = allFiles.length - uploadCount < parallelUploadCount ? allFiles.length - uploadCount : parallelUploadCount 
+  uploadFile(uploadCount,uploadCount + end);
 }
 
 function updateProgressBar(progress, progressBarFill,percent) {
@@ -123,6 +106,30 @@ function updateProgressBar(progress, progressBarFill,percent) {
     progressBarFill.style.backgroundColor = "#2196f3";
   }else{
     progressBarFill.style.backgroundColor = "green";
+  }
+}
+
+function uploadFile(start,end) {
+  for (let i = start; i < end; i++) {
+    let file = allFiles[i];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("POST", endpoint, true);
+
+    const {progressBarFill,percent} = progressBarFillArr[i];
+
+    xhr.upload.onprogress = (event) => handleProgress(event,progressBarFill,percent)
+
+    xhr.onload = () => handleUpload(xhr,end);
+
+    xhr.onerror = (err) => {
+      new Error(err);
+    };
+
+    xhr.send(formData);
   }
 }
 
